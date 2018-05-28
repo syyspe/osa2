@@ -1,8 +1,12 @@
 import React from 'react';
 
-const Person = ( {person} ) => {
+const Person = ( {person, handler} ) => {
     return (
-        <div>{person.name} {person.phone}</div>
+        <tr>
+            <td>{person.name}</td>
+            <td>{person.number}</td>
+            <td><button id={person.id} onClick={handler}>Poista</button></td>
+        </tr>
     )
 }
 
