@@ -1,7 +1,11 @@
 import React from 'react'
 import Persons from "./components/Persons"
 import FilterForm from './components/FilterForm'
+import Notification from "./components/Notification"
 import personService from "./services/persons"
+
+const ERROR = "error"
+const INFO = "info"
 
 class App extends React.Component {
     constructor(props) {
@@ -11,12 +15,22 @@ class App extends React.Component {
             newName: '',
             newNumber: '',
             filter: '',
-            error: ''
+            notificationType: null,
+            notificationMessage: null
         }
     }
 
     componentDidMount() {
         this.synchFromServer()
+    }
+
+    setNotification(message, type) {
+        this.setState({notificationType: type, notificationMessage: message})
+        
+        setTimeout(() => {
+            this.setState({notificationType: null, notificationMessage: null})
+        }, 5000)
+
     }
 
     synchFromServer() {
@@ -27,9 +41,8 @@ class App extends React.Component {
             })
             .catch(error => {
                 console.log(error)
-                alert(`Henkilöiden lataaminen palvelimelta epäonnistui: ${error}`)
+                this.setNotification(`Henkilöiden lataaminen palvelimelta epäonnistui: ${error}`, ERROR)
             })
-
     }
 
     getPersons() {
@@ -37,7 +50,7 @@ class App extends React.Component {
         return personsCopy.filter(person => person.name.toLowerCase().includes(this.state.filter))
     }
 
-    addEntry = (event) => {
+    addPerson = (event) => {
         event.preventDefault()
         
         const newPerson = {
@@ -45,26 +58,14 @@ class App extends React.Component {
             number: this.state.newNumber
         }
 
-        const personToAdd = this.state.persons.find(p => p.name === this.state.newName)
-        if (personToAdd !== undefined) {
-            if(window.confirm(`${personToAdd.name} on jo luettelossa, korvataanko vanha numero uudella?`)) {
-                personService
-                    .update(personToAdd.id, newPerson)
-                    .then(response => {
-                            this.setState({
-                                persons: this.state.persons.map(person => person.id === response.id ? response : person)
-                        })
-                    
-                    })
-                    .catch(error => {
-                        console.log(error)
-                        alert(`Henkilön muokkaaminen epäonnistui: ${error}`)
-                    })
-            }
+        // Käsitellään henkilöt case-sensitiivisesti, eli esim. Erkki ja erkki ovat eri henkilöitä.
+        // Tiedä sitten onko järkevää, mutta tehtävän kannalta joku päätös piti tehdä.
+        const existingPerson = this.state.persons.find(p => p.name === this.state.newName)
+        if (existingPerson !== undefined) {
+            this.updatePerson(existingPerson.id, newPerson)
             return
         }
 
-        
         personService
             .create(newPerson)
             .then(response => {
@@ -76,8 +77,30 @@ class App extends React.Component {
             })
             .catch(error => {
                 console.log(error)
-                alert(`Henkilön lisääminen epäonnistui: ${error}`)
+                this.setNotification(`Henkilön lisääminen epäonnistui: ${error}`, ERROR)
             })
+        
+        this.setNotification(`Lisättiin ${newPerson.name}`, INFO)
+    }
+
+    updatePerson(id, person) {
+        if(window.confirm(`${person.name} on jo luettelossa, korvataanko vanha numero uudella?`)) {
+            personService
+                .update(id, person)
+                .then(response => {
+                        this.setState({
+                            persons: this.state.persons.map(person => person.id === response.id 
+                                ? response 
+                                : person)
+                    })
+                
+                })
+                .catch(error => {
+                    console.log(error)
+                    this.setNotification(`${person.name} on todennäköisesti poistettu, kokeile painaa lisää nappia uudelleen.`, ERROR)
+                })
+        }
+
     }
 
     delete = (event) => {
@@ -96,7 +119,8 @@ class App extends React.Component {
             })
             .catch(error => {
                 console.log(error)
-                alert(`Henkilön poistaminen epäonnistui: ${error}`)
+                //alert(`Henkilön poistaminen epäonnistui: ${error}`)
+                this.setNotification(`Henkilön poistaminen epäonnistui: ${error}`, ERROR)
             })
     }
 
@@ -116,6 +140,7 @@ class App extends React.Component {
         return (
             <div>
                 <h2>Puhelinluettelo</h2>
+                <Notification message={this.state.notificationMessage} type={this.state.notificationType} />
                 <FilterForm text="rajaa näytettäviä" value={this.state.filter} handler={this.handleFilterChange} />
                 <h2>Lisää uusi</h2>
                 <form>
@@ -126,7 +151,7 @@ class App extends React.Component {
                         numero: <input value={this.state.newNumber} onChange={this.handleNumberChange} />
                     </div>
                     <div>
-                        <button type="submit" onClick={this.addEntry}>lisää</button>
+                        <button type="submit" onClick={this.addPerson}>lisää</button>
                     </div>
                 </form>
                 <h2>Numerot</h2>

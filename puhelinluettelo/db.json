@@ -2,7 +2,7 @@
   "persons": [
     {
       "name": "Lea Kutvonen",
-      "number": "040-123456",
+      "number": "040-555666",
       "id": 4
     },
     {
@@ -19,6 +19,11 @@
       "name": "Arto Hellas",
       "number": "050-3334445",
       "id": 7
+    },
+    {
+      "name": "Uusi Henkilö",
+      "number": "123-456789",
+      "id": 8
     }
   ]
 }
